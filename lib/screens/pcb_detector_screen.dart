@@ -2,9 +2,9 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:image_picker/image_picker.dart';
-import 'pcb_history_tab.dart';
+import '../screens/pcb_history_tab.dart';
+import '../services/api_service.dart';
 
-// Đổi hệ màu chủ đạo từ hằng số const sang màu động tùy thuộc trạng thái Theme
 const Color primaryBlue = Color(0xFF1E88E5);
 const Color errorRed = Color(0xFFEF5350);
 
@@ -17,8 +17,6 @@ class PCBDetectorScreen extends StatefulWidget {
 
 class _PCBDetectorScreenState extends State<PCBDetectorScreen> {
   String selectedTab = "Home";
-
-  // Biến quản lý trạng thái Sáng/Tối (Mặc định ban đầu là Dark Mode giống giao diện cũ)
   bool isDarkMode = true;
 
   // Quản lý Camera
@@ -28,14 +26,16 @@ class _PCBDetectorScreenState extends State<PCBDetectorScreen> {
   bool _showLiveCamera = false;
   bool isFlashOn = false;
 
-  // Quản lý ảnh đang được chọn/chụp để hiển thị xem trước (Preview)
+  // Quản lý lưu trữ ảnh Local và ảnh kết quả mạng từ Server
   File? _selectedImageFile;
+  String? _serverImageUrl;
 
   // Quản lý trạng thái kết quả phân tích
   bool _isAnalyzing = false;
   bool hasServerResult = false;
   String pcbInfoText = "Chưa có dữ liệu. Vui lòng sử dụng camera hoặc thêm ảnh từ thư viện.";
   List<String> mockFaults = [];
+  String apiProcessingTime = "0ms";
 
   @override
   void initState() {
@@ -63,6 +63,7 @@ class _PCBDetectorScreenState extends State<PCBDetectorScreen> {
       selectedTab = "Home";
       _showLiveCamera = true;
       _selectedImageFile = null;
+      _serverImageUrl = null; // Reset ảnh lỗi cũ khi mở camera mới
       hasServerResult = false;
     });
 
@@ -100,6 +101,7 @@ class _PCBDetectorScreenState extends State<PCBDetectorScreen> {
 
         setState(() {
           _selectedImageFile = File(image.path);
+          _serverImageUrl = null; // Reset ảnh lỗi cũ khi chọn ảnh mới
           _showLiveCamera = false;
           hasServerResult = false;
         });
@@ -118,6 +120,7 @@ class _PCBDetectorScreenState extends State<PCBDetectorScreen> {
       setState(() {
         _showLiveCamera = false;
         _selectedImageFile = File(file.path);
+        _serverImageUrl = null; // Reset ảnh cũ
         hasServerResult = false;
       });
     } catch (e) {
@@ -140,23 +143,35 @@ class _PCBDetectorScreenState extends State<PCBDetectorScreen> {
       _isAnalyzing = true;
     });
 
-    await Future.delayed(const Duration(seconds: 1));
+    final result = await ApiService.analyzePcbImage(_selectedImageFile!);
 
     setState(() {
       _isAnalyzing = false;
-      hasServerResult = true;
-      pcbInfoText = "Mã bo mạch: PCB_MODEL_PRO_X";
-      mockFaults = [
-        "1. Mouse Bite found at [X: 142, Y: 58]",
-        "2. Open Circuit found at [X: 310, Y: 215]",
-        "3. Short Circuit found at [X: 85, Y: 190]"
-      ];
     });
 
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Phân tích mạch thành công!"), backgroundColor: Colors.green),
-      );
+    if (result != null && result['success'] == true) {
+      setState(() {
+        hasServerResult = true;
+        pcbInfoText = result['pcb_info'] ?? "Không rõ mã bo mạch";
+        mockFaults = List<String>.from(result['faults'] ?? []);
+        _serverImageUrl = result['result_image_url'];
+        apiProcessingTime = result['processing_time'] ?? "0ms";
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Phân tích mạch thành công!"), backgroundColor: Colors.green),
+        );
+      }
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Lỗi phân tích hoặc không kết nối được tới Server API local!"),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -182,7 +197,6 @@ class _PCBDetectorScreenState extends State<PCBDetectorScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Định nghĩa bảng màu cục bộ thay đổi linh hoạt theo biến isDarkMode
     final Color currentBackground = isDarkMode ? const Color(0xFF121212) : const Color(0xFFF5F5F5);
     final Color currentSurface = isDarkMode ? const Color(0xFF1E1E1E) : Colors.white;
     final Color currentTextColor = isDarkMode ? Colors.white : const Color(0xFF212121);
@@ -203,7 +217,6 @@ class _PCBDetectorScreenState extends State<PCBDetectorScreen> {
           surfaceCard: currentSurface,
           errorRed: errorRed,
           primaryBlue: primaryBlue,
-          // Truyền thêm màu text động cho tab History nếu cần đồng bộ
         );
       default:
         return Center(
@@ -235,7 +248,6 @@ class _PCBDetectorScreenState extends State<PCBDetectorScreen> {
     );
   }
 
-  // MODIFIED: Thay thế Chuông & Cài đặt bằng 1 Switch đổi giao diện Sáng/Tối
   Widget _buildHeader(String title, Color currentTextColor) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12.0),
@@ -252,7 +264,6 @@ class _PCBDetectorScreenState extends State<PCBDetectorScreen> {
               ),
             ],
           ),
-          // Cụm gạt Switch Sáng / Tối kèm Icon chỉ báo trực quan
           Row(
             children: [
               Icon(
@@ -292,6 +303,7 @@ class _PCBDetectorScreenState extends State<PCBDetectorScreen> {
         clipBehavior: Clip.antiAlias,
         child: Stack(
           children: [
+            // 1. Chế độ mở Live Camera ngắm bo mạch
             if (_showLiveCamera) ...[
               _isCameraInitialized
                   ? Positioned.fill(child: CameraPreview(_cameraController!))
@@ -310,44 +322,60 @@ class _PCBDetectorScreenState extends State<PCBDetectorScreen> {
                 ),
               ),
             ]
-            else if (_selectedImageFile != null) ...[
-              Positioned.fill(child: Image.file(_selectedImageFile!, fit: BoxFit.cover)),
+            // 2. ƯU TIÊN HIỂN THỊ: Ảnh mạng đã vẽ khoanh vùng lỗi từ Server trả về
+            else if (_serverImageUrl != null) ...[
+              Positioned.fill(
+                child: Image.network(
+                  _serverImageUrl!,
+                  fit: BoxFit.cover,
+                  loadingBuilder: (context, child, loadingProgress) {
+                    if (loadingProgress == null) return child;
+                    return const Center(child: CircularProgressIndicator(color: primaryBlue));
+                  },
+                ),
+              ),
               Positioned.fill(child: CustomPaint(painter: GridPainter())),
-              if (_isAnalyzing)
-                Container(
-                  color: Colors.black54,
-                  child: const Center(
+            ]
+            // 3. Hiển thị ảnh thô cục bộ (Preview) trước khi nhấn nút Phân tích
+            else if (_selectedImageFile != null) ...[
+                Positioned.fill(child: Image.file(_selectedImageFile!, fit: BoxFit.cover)),
+                Positioned.fill(child: CustomPaint(painter: GridPainter())),
+                if (_isAnalyzing)
+                  Container(
+                    color: Colors.black54,
+                    child: const Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          CircularProgressIndicator(color: primaryBlue),
+                          SizedBox(height: 12),
+                          Text("Đang truyền dữ liệu ảnh...", style: TextStyle(color: Colors.white70, fontSize: 12)),
+                        ],
+                      ),
+                    ),
+                  ),
+              ]
+              // 4. Mặc định ban đầu - Khung trống hướng dẫn
+              else ...[
+                  const Positioned.fill(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        CircularProgressIndicator(color: primaryBlue),
+                        Icon(Icons.photo_camera_back_outlined, color: Colors.grey, size: 48),
                         SizedBox(height: 12),
-                        Text("Đang truyền dữ liệu ảnh...", style: TextStyle(color: Colors.white70, fontSize: 12)),
+                        Text(
+                          "Khung hiển thị hình ảnh quét mạch",
+                          style: TextStyle(color: Colors.grey, fontSize: 13, fontWeight: FontWeight.w500),
+                        ),
+                        SizedBox(height: 4),
+                        Text(
+                          "Sử dụng camera hoặc nút thư viện phía dưới",
+                          style: TextStyle(color: Colors.white30, fontSize: 11),
+                        ),
                       ],
                     ),
                   ),
-                ),
-            ]
-            else ...[
-                const Positioned.fill(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.photo_camera_back_outlined, color: Colors.grey, size: 48),
-                      SizedBox(height: 12),
-                      Text(
-                        "Khung hiển thị hình ảnh quét mạch",
-                        style: TextStyle(color: Colors.grey, fontSize: 13, fontWeight: FontWeight.w500),
-                      ),
-                      SizedBox(height: 4),
-                      Text(
-                        "Sử dụng camera hoặc nút thư viện phía dưới",
-                        style: TextStyle(color: Colors.white30, fontSize: 11),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+                ],
           ],
         ),
       ),
@@ -447,11 +475,11 @@ class _PCBDetectorScreenState extends State<PCBDetectorScreen> {
           ),
           const Divider(color: Colors.white10, height: 20),
           _buildResultDetailRow("Trạng thái kiểm định:", "Không Đạt (Failed)", errorRed),
-          _buildResultDetailRow("Thời gian xử lý API:", "145ms", Colors.green),
+          _buildResultDetailRow("Thời gian xử lý API:", apiProcessingTime, Colors.green),
           const SizedBox(height: 8),
           const Text("Chi tiết các tọa độ lỗi tìm thấy:", style: TextStyle(color: Colors.grey, fontSize: 13)),
           const SizedBox(height: 6),
-          ...mockFaults.map((fault) => _buildFaultLabel(fault,currentTextColor)),
+          ...mockFaults.map((fault) => _buildFaultLabel(fault, currentTextColor)),
         ],
       ),
     );
@@ -507,7 +535,6 @@ class _PCBDetectorScreenState extends State<PCBDetectorScreen> {
 
                 if (coordinates.isNotEmpty) ...[
                   const SizedBox(height: 4),
-
                   Text(
                     coordinates,
                     style: TextStyle(
@@ -582,7 +609,6 @@ class _PCBDetectorScreenState extends State<PCBDetectorScreen> {
     );
   }
 }
-
 class GridPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
