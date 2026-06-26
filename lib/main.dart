@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'screens/pcb_detector_screen.dart'; // Đảm bảo file pcb_detector_screen.dart nằm cùng thư mục lib
+import 'screens/pcb_detector_screen.dart';
 
 void main() {
   runApp(const MyApp());

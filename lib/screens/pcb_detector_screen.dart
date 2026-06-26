@@ -15,27 +15,27 @@ class PCBDetectorScreen extends StatefulWidget {
   State<PCBDetectorScreen> createState() => _PCBDetectorScreenState();
 }
 
-class _PCBDetectorScreenState extends State<PCBDetectorScreen> {
+class _PCBDetectorScreenState extends State<PCBDetectorScreen>
+{
+  String apiProcessingTime = "0ms";
+  String pcbStatus = "Chưa kiểm định";
+  bool isPcbPassed = false;
   String selectedTab = "Home";
   bool isDarkMode = true;
 
-  // Quản lý Camera
   CameraController? _cameraController;
   List<CameraDescription>? _cameras;
   bool _isCameraInitialized = false;
   bool _showLiveCamera = false;
   bool isFlashOn = false;
 
-  // Quản lý lưu trữ ảnh Local và ảnh kết quả mạng từ Server
   File? _selectedImageFile;
   String? _serverImageUrl;
 
-  // Quản lý trạng thái kết quả phân tích
   bool _isAnalyzing = false;
   bool hasServerResult = false;
   String pcbInfoText = "Chưa có dữ liệu. Vui lòng sử dụng camera hoặc thêm ảnh từ thư viện.";
   List<String> mockFaults = [];
-  String apiProcessingTime = "0ms";
 
   @override
   void initState() {
@@ -63,7 +63,7 @@ class _PCBDetectorScreenState extends State<PCBDetectorScreen> {
       selectedTab = "Home";
       _showLiveCamera = true;
       _selectedImageFile = null;
-      _serverImageUrl = null; // Reset ảnh lỗi cũ khi mở camera mới
+      _serverImageUrl = null;
       hasServerResult = false;
     });
 
@@ -101,7 +101,7 @@ class _PCBDetectorScreenState extends State<PCBDetectorScreen> {
 
         setState(() {
           _selectedImageFile = File(image.path);
-          _serverImageUrl = null; // Reset ảnh lỗi cũ khi chọn ảnh mới
+          _serverImageUrl = null;
           _showLiveCamera = false;
           hasServerResult = false;
         });
@@ -120,7 +120,7 @@ class _PCBDetectorScreenState extends State<PCBDetectorScreen> {
       setState(() {
         _showLiveCamera = false;
         _selectedImageFile = File(file.path);
-        _serverImageUrl = null; // Reset ảnh cũ
+        _serverImageUrl = null;
         hasServerResult = false;
       });
     } catch (e) {
@@ -141,6 +141,8 @@ class _PCBDetectorScreenState extends State<PCBDetectorScreen> {
 
     setState(() {
       _isAnalyzing = true;
+      mockFaults = [];
+      hasServerResult = false;
     });
 
     final result = await ApiService.analyzePcbImage(_selectedImageFile!);
@@ -153,9 +155,19 @@ class _PCBDetectorScreenState extends State<PCBDetectorScreen> {
       setState(() {
         hasServerResult = true;
         pcbInfoText = result['pcb_info'] ?? "Không rõ mã bo mạch";
-        mockFaults = List<String>.from(result['faults'] ?? []);
+
+        final List<dynamic> serverFaults = result['faults'] ?? [];
+        mockFaults = serverFaults.map((f) {
+          final String className = f['class'] ?? 'Khuyết tật';
+          final double conf = (f['confidence'] ?? 0.0) * 100;
+          final List<dynamic> bbox = f['bbox'] ?? [0,0,0,0];
+          return "$className (${conf.toStringAsFixed(0)}%) found at [${bbox.map((e) => e.toStringAsFixed(0)).join(', ')}]";
+        }).toList();
+
         _serverImageUrl = result['result_image_url'];
         apiProcessingTime = result['processing_time'] ?? "0ms";
+        pcbStatus = result['status'] ?? "Không rõ";
+        isPcbPassed = result['is_passed'] ?? false;
       });
 
       if (mounted) {
@@ -303,7 +315,6 @@ class _PCBDetectorScreenState extends State<PCBDetectorScreen> {
         clipBehavior: Clip.antiAlias,
         child: Stack(
           children: [
-            // 1. Chế độ mở Live Camera ngắm bo mạch
             if (_showLiveCamera) ...[
               _isCameraInitialized
                   ? Positioned.fill(child: CameraPreview(_cameraController!))
@@ -322,12 +333,11 @@ class _PCBDetectorScreenState extends State<PCBDetectorScreen> {
                 ),
               ),
             ]
-            // 2. ƯU TIÊN HIỂN THỊ: Ảnh mạng đã vẽ khoanh vùng lỗi từ Server trả về
             else if (_serverImageUrl != null) ...[
               Positioned.fill(
                 child: Image.network(
                   _serverImageUrl!,
-                  fit: BoxFit.cover,
+                  fit: BoxFit.contain,
                   loadingBuilder: (context, child, loadingProgress) {
                     if (loadingProgress == null) return child;
                     return const Center(child: CircularProgressIndicator(color: primaryBlue));
@@ -336,9 +346,8 @@ class _PCBDetectorScreenState extends State<PCBDetectorScreen> {
               ),
               Positioned.fill(child: CustomPaint(painter: GridPainter())),
             ]
-            // 3. Hiển thị ảnh thô cục bộ (Preview) trước khi nhấn nút Phân tích
             else if (_selectedImageFile != null) ...[
-                Positioned.fill(child: Image.file(_selectedImageFile!, fit: BoxFit.cover)),
+                Positioned.fill(child: Image.file(_selectedImageFile!, fit: BoxFit.contain)),
                 Positioned.fill(child: CustomPaint(painter: GridPainter())),
                 if (_isAnalyzing)
                   Container(
@@ -355,7 +364,6 @@ class _PCBDetectorScreenState extends State<PCBDetectorScreen> {
                     ),
                   ),
               ]
-              // 4. Mặc định ban đầu - Khung trống hướng dẫn
               else ...[
                   const Positioned.fill(
                     child: Column(
@@ -457,7 +465,7 @@ class _PCBDetectorScreenState extends State<PCBDetectorScreen> {
       decoration: BoxDecoration(
         color: currentSurface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: errorRed.withOpacity(0.3), width: 1),
+        border: Border.all(color: isPcbPassed ? Colors.green.withOpacity(0.3) : errorRed.withOpacity(0.3), width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -468,18 +476,38 @@ class _PCBDetectorScreenState extends State<PCBDetectorScreen> {
               Text(pcbInfoText, style: TextStyle(color: currentTextColor, fontWeight: FontWeight.bold, fontSize: 15)),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(color: errorRed.withOpacity(0.15), borderRadius: BorderRadius.circular(6)),
-                child: Text("Phát hiện: ${mockFaults.length} lỗi", style: const TextStyle(color: errorRed, fontWeight: FontWeight.bold, fontSize: 12)),
+                decoration: BoxDecoration(
+                    color: isPcbPassed ? Colors.green.withOpacity(0.15) : errorRed.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(6)
+                ),
+                child: Text(
+                    "Phát hiện: ${mockFaults.length} lỗi",
+                    style: TextStyle(color: isPcbPassed ? Colors.green : errorRed, fontWeight: FontWeight.bold, fontSize: 12)
+                ),
               ),
             ],
           ),
           const Divider(color: Colors.white10, height: 20),
-          _buildResultDetailRow("Trạng thái kiểm định:", "Không Đạt (Failed)", errorRed),
+          _buildResultDetailRow(
+              "Trạng thái kiểm định:",
+              pcbStatus,
+              isPcbPassed ? Colors.green : errorRed
+          ),
           _buildResultDetailRow("Thời gian xử lý API:", apiProcessingTime, Colors.green),
           const SizedBox(height: 8),
-          const Text("Chi tiết các tọa độ lỗi tìm thấy:", style: TextStyle(color: Colors.grey, fontSize: 13)),
-          const SizedBox(height: 6),
-          ...mockFaults.map((fault) => _buildFaultLabel(fault, currentTextColor)),
+          if (mockFaults.isNotEmpty) ...[
+            const Text("Chi tiết các tọa độ lỗi tìm thấy:", style: TextStyle(color: Colors.grey, fontSize: 13)),
+            const SizedBox(height: 6),
+            ...mockFaults.map((fault) => _buildFaultLabel(fault, currentTextColor)),
+          ] else ...[
+            const SizedBox(height: 10),
+            Center(
+              child: Text(
+                "🎉 Bo mạch hoàn hảo, không phát hiện khiếm khuyết!",
+                style: TextStyle(color: isDarkMode ? Colors.white54 : Colors.black54, fontSize: 12, fontStyle: FontStyle.italic),
+              ),
+            ),
+          ],
         ],
       ),
     );
