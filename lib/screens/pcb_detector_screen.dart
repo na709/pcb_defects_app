@@ -9,7 +9,11 @@ const Color primaryBlue = Color(0xFF1E88E5);
 const Color errorRed = Color(0xFFEF5350);
 
 class PCBDetectorScreen extends StatefulWidget {
-  const PCBDetectorScreen({super.key});
+
+  final String? deviceId;
+  final int? sessionId;
+
+  const PCBDetectorScreen({Key? key, this.deviceId, this.sessionId}) : super(key: key);
 
   @override
   State<PCBDetectorScreen> createState() => _PCBDetectorScreenState();
@@ -145,7 +149,11 @@ class _PCBDetectorScreenState extends State<PCBDetectorScreen>
       hasServerResult = false;
     });
 
-    final result = await ApiService.analyzePcbImage(_selectedImageFile!);
+    final result = await ApiService.analyzePcbImage(
+        _selectedImageFile!,
+        widget.deviceId,
+        widget.sessionId
+    );
 
     setState(() {
       _isAnalyzing = false;

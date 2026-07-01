@@ -2,15 +2,12 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:doan_local/main.dart';
 
 class ApiService {
-  // Cấu hình URL Base local:
-  // - Dùng '10.0.2.2' nếu bạn chạy trên giả lập Android Emulator mặc định.
-  // - Thay bằng IP máy tính của bạn (vídụ: '192.168.1.X') nếu test bằng điện thoại thật chung Wi-Fi.
   static const String _baseUrl = "http://10.0.2.2:3000";
 
-  /// Hàm gửi ảnh bo mạch lên Server Node.js và nhận về kết quả phân tích
-  static Future<Map<String, dynamic>?> analyzePcbImage(File imageFile) async {
+  static Future<Map<String, dynamic>?> analyzePcbImage(File imageFile, String? deviceId, int? sessionId) async {
     try {
       final url = Uri.parse("$_baseUrl/api/analyze-pcb");
 
@@ -19,6 +16,8 @@ class ApiService {
       request.files.add(
         await http.MultipartFile.fromPath('image', imageFile.path),
       );
+      request.fields['device_id'] = deviceId ?? 'unknown_device';
+      request.fields['session_id'] = sessionId?.toString() ?? '1';
 
       var streamedResponse = await request.send();
       var response = await http.Response.fromStream(streamedResponse);
