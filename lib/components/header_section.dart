@@ -4,7 +4,7 @@ class HeaderSection extends StatelessWidget {
   final String title;
   final Color textColor;
   final bool isDarkMode;
-  final ValueChanged<bool> onThemeChanged;
+  final Function(bool) onThemeChanged;
 
   const HeaderSection({
     Key? key,
@@ -17,21 +17,29 @@ class HeaderSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12.0),
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Row(
             children: [
-              const Icon(Icons.memory, color: Color(0xFF1E88E5), size: 28),
-              const SizedBox(width: 8),
-              Text(title, style: TextStyle(color: textColor, fontSize: 20, fontWeight: FontWeight.bold)),
+              Icon(Icons.memory, color: Colors.blueAccent, size: 28), // Icon PCB
+              const SizedBox(width: 10),
+              Text(
+                title,
+                style: TextStyle(
+                  color: textColor,
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ],
           ),
+          // Nút chuyển đổi mode (dark mode , light mode)
           Switch(
             value: isDarkMode,
-            activeColor: const Color(0xFF1E88E5),
             onChanged: onThemeChanged,
+            activeColor: Colors.blueAccent,
           ),
         ],
       ),

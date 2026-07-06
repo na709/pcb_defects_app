@@ -2,19 +2,20 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:image_picker/image_picker.dart';
+import '../theme/theme_manager.dart';
 import '../screens/pcb_history_tab.dart';
 import '../services/api_service.dart';
-import 'components/header_section.dart';
-import 'components/action_bar.dart';
-import 'components/result_section.dart';
-import 'components/display_zone.dart';
-import 'components/custom_bottom_nav_bar.dart';
+import '../components/header_section.dart';
+import '../components/action_bar.dart';
+import '../components/result_section.dart';
+import '../components/display_zone.dart';
+import '../components/custom_bottom_nav_bar.dart';
+import 'package:doan_local/screens/search_screens.dart';
 
 const Color primaryBlue = Color(0xFF1E88E5);
 const Color errorRed = Color(0xFFEF5350);
 
 class PCBDetectorScreen extends StatefulWidget {
-
   final String? deviceId;
   final int? sessionId;
 
@@ -24,13 +25,11 @@ class PCBDetectorScreen extends StatefulWidget {
   State<PCBDetectorScreen> createState() => _PCBDetectorScreenState();
 }
 
-class _PCBDetectorScreenState extends State<PCBDetectorScreen>
-{
+class _PCBDetectorScreenState extends State<PCBDetectorScreen> {
   String apiProcessingTime = "0ms";
   String pcbStatus = "Chưa kiểm định";
   bool isPcbPassed = false;
   String selectedTab = "Home";
-  bool isDarkMode = true;
 
   CameraController? _cameraController;
   List<CameraDescription>? _cameras;
@@ -222,32 +221,45 @@ class _PCBDetectorScreenState extends State<PCBDetectorScreen>
 
   @override
   Widget build(BuildContext context) {
-    final Color currentBackground = isDarkMode ? const Color(0xFF121212) : const Color(0xFFF5F5F5);
-    final Color currentSurface = isDarkMode ? const Color(0xFF1E1E1E) : Colors.white;
-    final Color currentTextColor = isDarkMode ? Colors.white : const Color(0xFF212121);
+    return ValueListenableBuilder<bool>(
+      valueListenable: ThemeService.isDarkModeNotifier,
+      builder: (context, isDarkMode, child) {
+        final Color currentBackground = isDarkMode ? const Color(0xFF121212) : const Color(0xFFF5F5F5);
+        final Color currentSurface = isDarkMode ? const Color(0xFF1E1E1E) : Colors.white;
+        final Color currentTextColor = isDarkMode ? Colors.white : const Color(0xFF212121);
 
-    return Scaffold(
-      backgroundColor: currentBackground,
-      body: SafeArea(child: _buildBodyContent(currentSurface, currentTextColor)),
-      bottomNavigationBar: CustomBottomNavBar(
-        selectedTab: selectedTab,
-        onTabSelected: (tab) => setState(() => selectedTab = tab),
-        onCameraTap: _showLiveCamera ? _takePicture : _startLiveCameraView,
-        backgroundColor: currentSurface,
-        activeColor: primaryBlue,
-      ),
+        return Scaffold(
+          backgroundColor: currentBackground,
+          body: SafeArea(child: _buildBodyContent(currentSurface, currentTextColor, isDarkMode)),
+          bottomNavigationBar: CustomBottomNavBar(
+            selectedTab: selectedTab,
+            onTabSelected: (tab) => setState(() => selectedTab = tab),
+            onCameraTap: _showLiveCamera ? _takePicture : _startLiveCameraView,
+            backgroundColor: currentSurface,
+            activeColor: primaryBlue,
+          ),
+        );
+      },
     );
   }
 
-  Widget _buildBodyContent(Color currentSurface, Color currentTextColor) {
+  Widget _buildBodyContent(Color currentSurface, Color currentTextColor, bool isDarkMode) {
     switch (selectedTab) {
       case "Home":
-        return _buildHomeTab(currentSurface, currentTextColor);
+        return _buildHomeTab(currentSurface, currentTextColor, isDarkMode);
       case "History":
         return PCBHistoryTab(
           surfaceCard: currentSurface,
           errorRed: errorRed,
           primaryBlue: primaryBlue,
+          textColor: currentTextColor,
+          isDarkMode: isDarkMode,
+        );
+      case "Search":
+        return SearchScreen(
+          surfaceColor: currentSurface,
+          textColor: currentTextColor,
+          isDarkMode: isDarkMode,
         );
       default:
         return Center(
@@ -256,7 +268,7 @@ class _PCBDetectorScreenState extends State<PCBDetectorScreen>
     }
   }
 
-  Widget _buildHomeTab(Color currentSurface, Color currentTextColor) {
+  Widget _buildHomeTab(Color currentSurface, Color currentTextColor, bool isDarkMode) {
     return SingleChildScrollView(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -267,7 +279,7 @@ class _PCBDetectorScreenState extends State<PCBDetectorScreen>
               title: "PCB Detector",
               textColor: currentTextColor,
               isDarkMode: isDarkMode,
-              onThemeChanged: (value) => setState(() => isDarkMode = value),
+              onThemeChanged: (value) => ThemeService.isDarkModeNotifier.value = value,
             ),
             const SizedBox(height: 12),
             DisplayZone(

@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
-import '../pcb_detector_screen.dart';
+import '../screens/pcb_detector_screen.dart';
 
 class DisplayZone extends StatelessWidget {
   final bool showLiveCamera;

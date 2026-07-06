@@ -1,15 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:doan_local/components/header_section.dart';
+import 'package:doan_local/theme/theme_manager.dart';
 
 class PCBHistoryTab extends StatefulWidget {
   final Color surfaceCard;
   final Color errorRed;
   final Color primaryBlue;
+  final Color textColor;
+  final bool isDarkMode;
 
   const PCBHistoryTab({
     super.key,
     required this.surfaceCard,
     required this.errorRed,
     required this.primaryBlue,
+    required this.textColor,
+    required this.isDarkMode,
   });
 
   @override
@@ -21,48 +27,32 @@ class _PCBHistoryTabState extends State<PCBHistoryTab> {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildHeader("Nhật ký quét lỗi"),
-            const SizedBox(height: 12),
-            _buildFilterChips(),
-            const SizedBox(height: 24),
-            _buildRecentScansList(),
-            const SizedBox(height: 20),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHeader(String title) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.memory, color: widget.primaryBlue, size: 28),
-              const SizedBox(width: 8),
-              Text(
-                title,
-                style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-            ],
+    return ValueListenableBuilder<bool>(
+      valueListenable: ThemeService.isDarkModeNotifier,
+      builder: (context, isDarkMode, child) {
+        return SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                HeaderSection(
+                  title: "Lịch sử quét lỗi",
+                  textColor: widget.textColor,
+                  isDarkMode: isDarkMode,
+                  onThemeChanged: (val) {
+                    ThemeService.isDarkModeNotifier.value = val;
+                  },
+                ),
+                _buildFilterChips(),
+                const SizedBox(height: 24),
+                _buildRecentScansList(),
+                const SizedBox(height: 20),
+              ],
+            ),
           ),
-          Row(
-            children: [
-              IconButton(icon: const Icon(Icons.notifications, color: Colors.white), onPressed: () {}),
-              IconButton(icon: const Icon(Icons.settings, color: Colors.white), onPressed: () {}),
-            ],
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -71,7 +61,7 @@ class _PCBHistoryTabState extends State<PCBHistoryTab> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text("Bộ lọc quét lỗi AI", style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+        Text("Bộ lọc quét lỗi AI", style: TextStyle(color: widget.textColor.withOpacity(0.7), fontSize: 14, fontWeight: FontWeight.bold)),
         const SizedBox(height: 10),
         SizedBox(
           height: 38,
@@ -94,7 +84,7 @@ class _PCBHistoryTabState extends State<PCBHistoryTab> {
                     child: Text(
                       filter,
                       style: TextStyle(
-                        color: isSelected ? Colors.white : Colors.grey,
+                        color: isSelected ? Colors.white : widget.textColor,
                         fontSize: 13,
                         fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                       ),
@@ -113,7 +103,7 @@ class _PCBHistoryTabState extends State<PCBHistoryTab> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text("Danh sách lịch sử quét", style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+        Text("Danh sách lịch sử quét", style: TextStyle(color: widget.textColor.withOpacity(0.7), fontSize: 14, fontWeight: FontWeight.bold)),
         const SizedBox(height: 10),
         ListView.separated(
           shrinkWrap: true,
@@ -129,21 +119,21 @@ class _PCBHistoryTabState extends State<PCBHistoryTab> {
                   Container(
                     width: 50,
                     height: 50,
-                    decoration: BoxDecoration(color: Colors.black26, borderRadius: BorderRadius.circular(8)),
-                    child: const Icon(Icons.broken_image, color: Colors.white30, size: 24),
+                    decoration: BoxDecoration(color: widget.textColor.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+                    child: Icon(Icons.broken_image, color: widget.textColor.withOpacity(0.3), size: 24),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text("PCB_BATCH_00${6 - index}", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                        Text("PCB_BATCH_00${6 - index}", style: TextStyle(color: widget.textColor, fontWeight: FontWeight.bold, fontSize: 14)),
                         const SizedBox(height: 4),
-                        const Text("Quét lúc: 10:02 - 18/06/2026", style: TextStyle(color: Colors.grey, fontSize: 11)),
+                        Text("Quét lúc: 10:02 - 18/06/2026", style: TextStyle(color: widget.textColor.withOpacity(0.5), fontSize: 11)),
                       ],
                     ),
                   ),
-                  const Icon(Icons.arrow_forward_ios, color: Colors.grey, size: 14),
+                  Icon(Icons.arrow_forward_ios, color: widget.textColor.withOpacity(0.3), size: 14),
                 ],
               ),
             );
