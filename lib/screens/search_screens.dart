@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import 'package:doan_local/components/header_section.dart';
 import 'package:doan_local/theme/theme_manager.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class ScanResult {
   final int id;
@@ -169,6 +170,17 @@ class _SearchScreenState extends State<SearchScreen> {
                       color: widget.surfaceColor,
                       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                       child: ListTile(
+                        leading: ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: CachedNetworkImage(
+                            imageUrl: item.originalImage,
+                            width: 50,
+                            height: 50,
+                            fit: BoxFit.cover,
+                            placeholder: (context, url) => const Icon(Icons.image, color: Colors.grey),
+                            errorWidget: (context, url, error) => const Icon(Icons.broken_image, color: Colors.grey),
+                          ),
+                        ),
                         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                         title: Text(
                             "PCB_BATCH_${item.id}",
