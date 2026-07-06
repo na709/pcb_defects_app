@@ -180,14 +180,17 @@ class _PCBHistoryTabState extends State<PCBHistoryTab> {
               ),
 
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                    color: widget.errorRed.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(6)
+                  color: (item.faultCount == 0 ? Colors.green : Colors.redAccent).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                    "${item.faultCount} lỗi",
-                    style: TextStyle(color: widget.errorRed, fontSize: 11, fontWeight: FontWeight.bold)
+                  item.faultCount == 0 ? "Đạt" : "Lỗi: ${item.faultCount}",
+                  style: TextStyle(
+                    color: item.faultCount == 0 ? Colors.green : Colors.redAccent,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ],

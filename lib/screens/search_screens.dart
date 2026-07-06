@@ -193,14 +193,14 @@ class _SearchScreenState extends State<SearchScreen> {
                         trailing: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                           decoration: BoxDecoration(
-                            color: widget.textColor.withOpacity(0.1),
+                            color: (item.faultCount == 0 ? Colors.green : Colors.redAccent).withOpacity(0.1),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
-                            "Lỗi: ${item.faultCount}",
+                            item.faultCount == 0 ? "Đạt" : "Lỗi: ${item.faultCount}",
                             style: TextStyle(
-                                color: item.faultCount > 0 ? Colors.redAccent : Colors.green,
-                                fontWeight: FontWeight.bold
+                              color: item.faultCount == 0 ? Colors.green : Colors.redAccent,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
                         ),
