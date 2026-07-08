@@ -3,32 +3,9 @@ import 'package:dio/dio.dart';
 import 'package:doan_local/components/header_section.dart';
 import 'package:doan_local/theme/theme_manager.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:doan_local/main.dart';
+import 'package:doan_local/models/search_models.dart';
 
-class ScanResult {
-  final int id;
-  final String originalImage;
-  final String createdAt;
-  final int faultCount;
-  final int isPassed;
-
-  ScanResult({
-    required this.id,
-    required this.originalImage,
-    required this.createdAt,
-    required this.faultCount,
-    required this.isPassed,
-  });
-
-  factory ScanResult.fromJson(Map<String, dynamic> json) {
-    return ScanResult(
-      id: json['id'] ?? 0,
-      originalImage: json['original_image'] ?? '',
-      createdAt: json['created_at'] ?? '',
-      faultCount: json['fault_count'] ?? 0,
-      isPassed: json['is_passed'] ?? 0,
-    );
-  }
-}
 
 class SearchScreen extends StatefulWidget {
   final Color surfaceColor;
@@ -47,27 +24,21 @@ class SearchScreen extends StatefulWidget {
 }
 
 class _SearchScreenState extends State<SearchScreen> {
-  final Dio _dio = Dio(BaseOptions(baseUrl: 'http://192.168.1.214:3000'));
   List<ScanResult> _results = [];
   bool _isLoading = false;
 
   Future<void> _performSearch(String query) async {
     setState(() => _isLoading = true);
-    //debugPrint("DEBUG: Bắt đầu tìm kiếm với từ khóa: $query");
     try {
-      final response = await _dio.get(
+      final response = await dio.get(
         '/api/search',
         queryParameters: {'q': query},
-        options: Options(headers: {'x-device-id': 'BE2A.250530.026.F3'}),
       );
-
-      //debugPrint("DEBUG: Dữ liệu API trả về: ${response.data}");
 
       if (response.data is List) {
         setState(() {
           _results = (response.data as List).map((item) => ScanResult.fromJson(item)).toList();
         });
-        debugPrint("DEBUG: Đã cập nhật _results với ${_results.length} phần tử");
       }
     } catch (e) {
       debugPrint("Lỗi search: $e");
@@ -78,7 +49,7 @@ class _SearchScreenState extends State<SearchScreen> {
 
   Future<List<String>> _fetchSuggestions(String query) async {
     try {
-      final response = await _dio.get('/api/search/suggestions', queryParameters: {'q': query});
+      final response = await dio.get('/api/search/suggestions', queryParameters: {'q': query});
       return (response.data as List).map((item) => item.toString()).toList();
     } catch (e) {
       debugPrint("Lỗi gợi ý: $e");

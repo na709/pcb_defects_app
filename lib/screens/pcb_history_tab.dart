@@ -5,6 +5,7 @@ import 'package:doan_local/components/header_section.dart';
 import 'package:doan_local/theme/theme_manager.dart';
 import 'package:doan_local/models/scan_result.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:doan_local/main.dart';
 
 
 
@@ -25,7 +26,6 @@ class _PCBHistoryTabState extends State<PCBHistoryTab> {
   String selectedFilter = "Tất cả";
   List<ScanResult> _historyList = [];
   bool _isLoading = true;
-  final Dio _dio = Dio(BaseOptions(baseUrl: 'http://10.0.2.2:3000'));
 
   @override
   void initState() {
@@ -36,10 +36,10 @@ class _PCBHistoryTabState extends State<PCBHistoryTab> {
   Future<void> _fetchHistory(String filter) async {
     setState(() => _isLoading = true);
     try {
-      final response = await _dio.get('/api/history',
-          queryParameters: {'type': filter},
-          options: Options(headers: {'x-device-id': 'BE2A.250530.026.F3'})
+      final response = await dio.get('/api/history',
+          queryParameters: {'type': filter}
       );
+
       setState(() {
         _historyList = (response.data as List).map((i) => ScanResult.fromJson(i)).toList();
       });
