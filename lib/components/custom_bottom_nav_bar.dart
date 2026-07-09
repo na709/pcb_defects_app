@@ -27,9 +27,9 @@ class CustomBottomNavBar extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
+              const SizedBox(width: 35),
               _buildNavButton(Icons.home, "Home"),
-              _buildNavButton(Icons.search, "Search"),
-              const SizedBox(width: 48),
+              const SizedBox(width: 70),
               _buildNavButton(Icons.history, "History"),
               _buildNavButton(Icons.person, "Profile"),
             ],

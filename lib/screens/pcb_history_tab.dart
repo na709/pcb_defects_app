@@ -20,12 +20,16 @@ class PCBHistoryTab extends StatefulWidget {
 
   @override
   State<PCBHistoryTab> createState() => _PCBHistoryTabState();
+
 }
 
 class _PCBHistoryTabState extends State<PCBHistoryTab> {
   String selectedFilter = "Tất cả";
   List<ScanResult> _historyList = [];
   bool _isLoading = true;
+  final TextEditingController _searchController = TextEditingController();
+  List<ScanResult> _searchResults = [];
+  bool _isSearching = false;
 
   @override
   void initState() {
@@ -33,12 +37,23 @@ class _PCBHistoryTabState extends State<PCBHistoryTab> {
     _fetchHistory("Tất cả");
   }
 
-  Future<void> _fetchHistory(String filter) async {
+  Future<List<String>> _fetchSuggestions(String query) async {
+    try {
+      final response = await dio.get('/api/search/suggestions', queryParameters: {'q': query});
+      return (response.data as List).map((i) => i.toString()).toList();
+    } catch (e) { return []; }
+  }
+
+  Future<void> _fetchHistory(String? query) async {
     setState(() => _isLoading = true);
     try {
-      final response = await dio.get('/api/history',
-          queryParameters: {'type': filter}
+      final searchQuery = (query == null || query == "Tất cả") ? "" : query;
+
+      debugPrint("Đang tìm kiếm với query: $query");
+      final response = await dio.get('/api/search',
+          queryParameters: {'q': searchQuery}
       );
+      debugPrint("Response data: ${response.data}");
 
       setState(() {
         _historyList = (response.data as List).map((i) => ScanResult.fromJson(i)).toList();
@@ -61,12 +76,83 @@ class _PCBHistoryTabState extends State<PCBHistoryTab> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               HeaderSection(title: "Lịch sử quét lỗi", textColor: widget.textColor, isDarkMode: isDarkMode, onThemeChanged: (val) => ThemeService.isDarkModeNotifier.value = val),
+              Autocomplete<String>(
+                optionsBuilder: (val) => val.text.isEmpty ? const Iterable.empty() : _fetchSuggestions(val.text),
+                onSelected: (String selection) {
+                  _fetchHistory(selection);
+                },
+                fieldViewBuilder: (ctx, controller, focusNode, onSub) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 2.0, vertical: 5.0),
+                    child: TextField(
+                      controller: controller,
+                      focusNode: focusNode,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: InputDecoration(
+                        hintText: "Gõ loại lỗi...",
+                        hintStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
+                        filled: true,
+                        fillColor: widget.surfaceCard,
+                        prefixIcon: const Icon(Icons.search, color: Colors.white),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none
+                        ),
+                      ),
+                      onSubmitted: (value) => _fetchHistory(value),
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 5),
               _buildFilterChips(),
-              const SizedBox(height: 24),
-              _isLoading
+              const SizedBox(height: 10),
+              _isSearching
                   ? const Center(child: CircularProgressIndicator())
-                  : _buildRecentScansList(),
+                  : (_searchController.text.isNotEmpty ? _buildSearchResults() : _buildRecentScansList()),
             ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildSearchResults() {
+    if (_searchResults.isEmpty) {
+      return Center(
+        child: Text("Không tìm thấy kết quả",
+            style: TextStyle(color: widget.textColor.withOpacity(0.5))),
+      );
+    }
+
+    return ListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: _searchResults.length,
+      itemBuilder: (context, index) {
+        final item = _searchResults[index];
+        return Card(
+          color: widget.surfaceCard,
+          margin: const EdgeInsets.symmetric(vertical: 4),
+          child: ListTile(
+            leading: ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: CachedNetworkImage(
+                imageUrl: item.originalImage,
+                width: 50,
+                height: 50,
+                fit: BoxFit.cover,
+              ),
+            ),
+            title: Text("PCB_BATCH_${item.id}",
+                style: TextStyle(color: widget.textColor, fontWeight: FontWeight.bold)),
+            trailing: Text(
+              item.isPassed == 0 ? "Lỗi: ${item.faultCount}" : "Đạt",
+              style: TextStyle(
+                color: item.isPassed == 0 ? Colors.green : Colors.red,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         );
       },
@@ -80,6 +166,7 @@ class _PCBHistoryTabState extends State<PCBHistoryTab> {
       "Mouse Bite": "mouse_bite",
       "Open Circuit": "open_circuit",
       "Spur": "spur",
+      "Spurious Copper": "spurious_copper",
       "Short Circuit": "short"
     };
     final displayFilters = _filterMap.keys.toList();
@@ -87,8 +174,6 @@ class _PCBHistoryTabState extends State<PCBHistoryTab> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text("Bộ lọc quét lỗi AI", style: TextStyle(color: widget.textColor.withOpacity(0.7), fontSize: 14, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 10),
         SizedBox(
           height: 38,
           child: ListView.separated(
@@ -139,7 +224,7 @@ class _PCBHistoryTabState extends State<PCBHistoryTab> {
       separatorBuilder: (context, index) => const SizedBox(height: 10),
       itemBuilder: (context, index) {
         final item = _historyList[index];
-        final date = DateTime.tryParse(item.createdAt) ?? DateTime.now();
+        final date = DateTime.parse(item.createdAt).toLocal();
 
         return Container(
           padding: const EdgeInsets.all(12),
@@ -171,7 +256,9 @@ class _PCBHistoryTabState extends State<PCBHistoryTab> {
                         style: TextStyle(color: widget.textColor, fontWeight: FontWeight.bold)
                     ),
                     const SizedBox(height: 4),
+
                     Text(
+
                         "Quét lúc: ${DateFormat('HH:mm - dd/MM/yyyy').format(date)}",
                         style: TextStyle(color: widget.textColor.withOpacity(0.5), fontSize: 11)
                     ),

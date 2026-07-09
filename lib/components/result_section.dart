@@ -11,7 +11,7 @@ class ResultSection extends StatelessWidget {
   final bool isPcbPassed;
   final String pcbStatus;
   final String apiProcessingTime;
-  final Color errorRed; // Thêm biến này để dùng chung
+  final Color errorRed;
 
   const ResultSection({
     Key? key,

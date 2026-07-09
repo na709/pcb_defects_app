@@ -3,18 +3,21 @@ import 'package:flutter/material.dart';
 import 'package:doan_local/utils/device_helper.dart';
 import 'package:doan_local/screens/pcb_detector_screen.dart';
 
-
-final Dio dio = Dio(BaseOptions(baseUrl: 'http://192.168.1.214:3000'));
+//http://n2.ckey.vn:2534
+final Dio dio = Dio(BaseOptions(baseUrl: 'http://192.168.1.214:3000')); //local
+//final Dio dio = Dio(BaseOptions(baseUrl: 'http://n2.ckey.vn:2534')); //server
+//final Dio dio = Dio(BaseOptions(baseUrl: 'http://ckc.cntt.cloud:2534')); //server
 
 void main() {
   dio.interceptors.add(InterceptorsWrapper(
     onRequest: (options, handler) async {
       final deviceId = await DeviceHelper.getDeviceId();
       options.headers['x-device-id'] = deviceId;
-      if (options.data is Map) {
+
+      if (options.data is FormData) {
+        options.data.fields.add(MapEntry('device_id', deviceId));
+      } else if (options.data is Map) {
         options.data['device_id'] = deviceId;
-      } else if (options.data == null) {
-        options.data = {'device_id': deviceId};
       }
       return handler.next(options);
     },
@@ -73,7 +76,6 @@ class _SessionManagerAppState extends State<SessionManagerApp> with WidgetsBindi
   Widget build(BuildContext context) {
     return MaterialApp(
       home: Scaffold(
-        // Bây giờ không cần truyền deviceId thủ công nữa, các màn hình con tự lấy qua Dio
         body: PCBDetectorScreen(sessionId: _currentSessionId),
       ),
     );

@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import '../screens/pcb_detector_screen.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class DisplayZone extends StatelessWidget {
   final bool showLiveCamera;
@@ -55,7 +56,16 @@ class DisplayZone extends StatelessWidget {
                 ),
               ),
             ] else if (serverImageUrl != null) ...[
-              Positioned.fill(child: Image.network(serverImageUrl!, fit: BoxFit.contain)),
+              Positioned.fill(
+                child: CachedNetworkImage(
+                  imageUrl: serverImageUrl!,
+                  fit: BoxFit.contain,
+                  placeholder: (context, url) => const Center(child: CircularProgressIndicator()),
+                  errorWidget: (context, url, error) => const Center(
+                    child: Icon(Icons.broken_image, color: Colors.grey, size: 48),
+                  ),
+                ),
+              ),
               Positioned.fill(child: CustomPaint(painter: GridPainter())),
             ] else if (selectedImageFile != null) ...[
               Positioned.fill(child: Image.file(selectedImageFile!, fit: BoxFit.contain)),

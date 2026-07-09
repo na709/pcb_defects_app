@@ -12,8 +12,13 @@ import '../components/display_zone.dart';
 import '../components/custom_bottom_nav_bar.dart';
 import 'package:doan_local/screens/search_screens.dart';
 
+
 const Color primaryBlue = Color(0xFF1E88E5);
 const Color errorRed = Color(0xFFEF5350);
+class AppState {
+  static String? lastProcessedImageUrl;
+  static List<dynamic>? lastFaults;
+}
 
 class PCBDetectorScreen extends StatefulWidget {
   final String? deviceId;
@@ -25,7 +30,7 @@ class PCBDetectorScreen extends StatefulWidget {
   State<PCBDetectorScreen> createState() => _PCBDetectorScreenState();
 }
 
-class _PCBDetectorScreenState extends State<PCBDetectorScreen> {
+class _PCBDetectorScreenState extends State<PCBDetectorScreen> with AutomaticKeepAliveClientMixin {
   String apiProcessingTime = "0ms";
   String pcbStatus = "Chưa kiểm định";
   bool isPcbPassed = false;
@@ -44,6 +49,12 @@ class _PCBDetectorScreenState extends State<PCBDetectorScreen> {
   bool hasServerResult = false;
   String pcbInfoText = "Chưa có dữ liệu. Vui lòng sử dụng camera hoặc thêm ảnh từ thư viện.";
   List<String> mockFaults = [];
+
+
+
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
@@ -221,6 +232,7 @@ class _PCBDetectorScreenState extends State<PCBDetectorScreen> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return ValueListenableBuilder<bool>(
       valueListenable: ThemeService.isDarkModeNotifier,
       builder: (context, isDarkMode, child) {
@@ -302,8 +314,6 @@ class _PCBDetectorScreenState extends State<PCBDetectorScreen> {
               isDarkMode: isDarkMode,
             ),
             const SizedBox(height: 24),
-            Text("Kết quả phân tích từ Server", style: TextStyle(color: currentTextColor, fontSize: 16, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 10),
             ResultSection(
               isAnalyzing: _isAnalyzing,
               hasServerResult: hasServerResult,
