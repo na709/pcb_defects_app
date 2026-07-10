@@ -11,13 +11,17 @@ final Dio dio = Dio(BaseOptions(baseUrl: 'http://192.168.1.214:3000')); //local
 void main() {
   dio.interceptors.add(InterceptorsWrapper(
     onRequest: (options, handler) async {
-      final deviceId = await DeviceHelper.getDeviceId();
-      options.headers['x-device-id'] = deviceId;
+      final String? deviceId = await DeviceHelper.getDeviceId();
 
-      if (options.data is FormData) {
-        options.data.fields.add(MapEntry('device_id', deviceId));
-      } else if (options.data is Map) {
-        options.data['device_id'] = deviceId;
+      if (deviceId == null) {
+        debugPrint("CẢNH BÁO: Device ID bị null!");
+      } else {
+        debugPrint("Interceptor: Đã lấy được ID: $deviceId");
+        options.headers['x-device-id'] = deviceId;
+
+        if (options.data is Map) {
+          options.data['device_id'] = deviceId;
+        }
       }
       return handler.next(options);
     },
@@ -45,12 +49,7 @@ class _SessionManagerAppState extends State<SessionManagerApp> with WidgetsBindi
 
   Future<void> _startSession() async {
     try {
-      final deviceId = await DeviceHelper.getDeviceId();
-
-      final response = await dio.post(
-          '/api/sessions/start',
-          data: {'device_id': deviceId}
-      );
+      final response = await dio.post('/api/sessions/start');
 
       setState(() => _currentSessionId = response.data['session_id']);
       debugPrint("✅ Session bắt đầu: $_currentSessionId");

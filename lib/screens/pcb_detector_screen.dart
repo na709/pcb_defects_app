@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:doan_local/screens/admin_profile_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:image_picker/image_picker.dart';
@@ -11,6 +12,8 @@ import '../components/result_section.dart';
 import '../components/display_zone.dart';
 import '../components/custom_bottom_nav_bar.dart';
 import 'package:doan_local/screens/search_screens.dart';
+
+import 'login_screen.dart';
 
 
 const Color primaryBlue = Color(0xFF1E88E5);
@@ -267,12 +270,10 @@ class _PCBDetectorScreenState extends State<PCBDetectorScreen> with AutomaticKee
           textColor: currentTextColor,
           isDarkMode: isDarkMode,
         );
-      case "Search":
-        return SearchScreen(
-          surfaceColor: currentSurface,
-          textColor: currentTextColor,
-          isDarkMode: isDarkMode,
-        );
+      case "Login":
+        return AdminLoginScreen();
+      case "Admin":
+        return const AdminProfileScreen();
       default:
         return Center(
           child: Text("Màn hình $selectedTab đang phát triển", style: TextStyle(color: currentTextColor, fontSize: 16)),

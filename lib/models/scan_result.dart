@@ -18,7 +18,7 @@ class ScanResult {
       id: json['id'],
       originalImage: json['original_image'],
       createdAt: json['created_at'],
-      faultCount: json['fault_Count'] ?? 0,
+      faultCount: json['fault_count'] ?? 0,
       isPassed: json ["is_passed"]?? 0,
     );
   }
