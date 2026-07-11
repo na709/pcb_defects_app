@@ -1,253 +1,248 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:doan_local/models/dashboard_model.dart';
+import '../services/dio_instances.dart';
 
-class AdminProfileScreen extends StatelessWidget {
-  const AdminProfileScreen({super.key});
+class AdminProfileScreen extends StatefulWidget {
+  final bool isDarkMode;
+  const AdminProfileScreen({super.key,required this.isDarkMode});
+
+  @override
+  State<AdminProfileScreen> createState() => _AdminProfileScreenState();
+}
+
+class _AdminProfileScreenState extends State<AdminProfileScreen> {
+  late Future<DashboardStats> _statsFuture;
+  Color get bgColor => widget.isDarkMode ? const Color(0xFF0F0F0F) : Colors.white;
+  Color get surfaceColor => widget.isDarkMode ? const Color(0xFF1E1E1E) : Colors.grey[200]!;
+  Color get textColor => widget.isDarkMode ? Colors.white : Colors.black;
+
+
+
+  @override
+  void initState() {
+    super.initState();
+    _statsFuture = fetchDashboardData();
+  }
+
+  Future<DashboardStats> fetchDashboardData() async {
+    final response = await DioClient.adminDio.get('/admin/dashboard-stats');
+    debugPrint("--- DEBUG REQUEST ADMIN ---");
+    debugPrint("Headers: ${DioClient.adminDio.options.headers}");
+    debugPrint("Token đang dùng: ${DioClient.adminDio.options.headers['Authorization']}");
+    return DashboardStats.fromJson(response.data);
+  }
 
   @override
   Widget build(BuildContext context) {
+    final bgColor = widget.isDarkMode ? const Color(0xFF0F0F0F) : Colors.white;
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F0F),
-      appBar: AppBar(title: const Text("Admin Console"), backgroundColor: Colors.transparent),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            _buildProfileHeader(),
-            const SizedBox(height: 24),
+      backgroundColor: bgColor,
+      body: FutureBuilder<DashboardStats>(
+        future: _statsFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) return Center(child: Text("Lỗi: ${snapshot.error}", style: const TextStyle(color: Colors.red)));
 
-            // THAY THẾ GRID BẰNG BIỂU ĐỒ
-            const Align(
-              alignment: Alignment.centerLeft,
-              child: Text("Thống kê Batch hôm nay",
-                  style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-            ),
-            const SizedBox(height: 16),
-            _buildStatisticsChart(context),
-            const SizedBox(height: 20),
-            _buildLegend(),
-
-            const SizedBox(height: 24),
-            _buildManagementSection(context),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStatisticsChart(BuildContext context) {
-    return Container(
-      height: 500,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E1E1E),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: BarChart(
-        BarChartData(
-          alignment: BarChartAlignment.spaceAround,
-
-          barTouchData: BarTouchData(
-            touchCallback: (FlTouchEvent event, BarTouchResponse? response) {
-              if (event is FlTapUpEvent &&
-                  response != null &&
-                  response.spot != null &&
-                  response.spot!.touchedBarGroupIndex == 2) { // Index 2 là cột Lỗi
-                _showErrorDetailDialog(context); // Gọi hàm hiển thị Dialog
-              }
-            },
-            touchTooltipData: BarTouchTooltipData(
-              getTooltipColor: (_) => Colors.transparent, // Ẩn tooltip mặc định vì ta dùng Dialog
-            ),
-          ),
-
-          titlesData: FlTitlesData(
-            bottomTitles: AxisTitles(
-              sideTitles: SideTitles(
-                showTitles: true,
-                getTitlesWidget: (value, meta) {
-                  const style = TextStyle(color: Colors.white70, fontSize: 12);
-                  switch (value.toInt()) {
-                    case 0: return const Text('Tổng', style: style);
-                    case 1: return const Text('Đạt', style: style);
-                    case 2: return const Text('Lỗi', style: style);
-                    default: return const Text('');
-                  }
-                },
-              ),
-            ),
-          ),
-          barGroups: [
-            BarChartGroupData(x: 0, barRods: [
-              BarChartRodData(
-                  toY: 1000,
-                  color: Colors.blue,
-                  width: 20,
-                  borderRadius: BorderRadius.zero
-              )
-            ]),
-            BarChartGroupData(x: 1, barRods: [
-              BarChartRodData(
-                  toY: 700,
-                  color: Colors.green,
-                  width: 20,
-                  borderRadius: BorderRadius.zero
-              )
-            ]),
-            BarChartGroupData(
-              x: 2,
-              barRods: [
-                BarChartRodData(
-                  toY: 300,
-                  width: 20,
-                  borderRadius: BorderRadius.zero,
-                  rodStackItems: [
-                    // Màu lạnh/nhạt ở dưới trước
-                    BarChartRodStackItem(0, 27, Colors.blue),      // Open Circuit
-                    BarChartRodStackItem(27, 50, Colors.purple),   // Spur
-                    BarChartRodStackItem(50, 115, Colors.teal),    // Spurious Copper
-                    // Màu đậm/rực ở trên sau
-                    BarChartRodStackItem(115, 145, Colors.orange), // Missing Hole
-                    BarChartRodStackItem(145, 235, Colors.red),    // Mouse Bite
-                    BarChartRodStackItem(235, 300, Colors.yellow), // Short Circuit
-                  ],
+          final stats = snapshot.data!;
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              children: [
+                _buildProfileHeader(stats.admin),
+                const SizedBox(height: 24),
+                const Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text("Thống kê Batch hôm nay", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
                 ),
+                const SizedBox(height: 16),
+                _buildStatisticsChart(stats),
+                const SizedBox(height: 20),
+                _buildLegend(stats.faultBreakdown),
+                const SizedBox(height: 24),
+                _buildManagementSection(context),
               ],
             ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildStatisticsChart(DashboardStats stats) {
+
+    return Container(
+      height: 400,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(color: surfaceColor, borderRadius: BorderRadius.circular(16)),
+      child: BarChart(
+        BarChartData(
+          barTouchData: BarTouchData(
+            touchCallback: (FlTouchEvent event, BarTouchResponse? touchResponse) {
+              if (event is FlTapUpEvent && touchResponse != null && touchResponse.spot != null) {
+                int x = touchResponse.spot!.touchedBarGroupIndex;
+                if (x == 2) {
+                  _showFaultDetailsDialog(context, stats.faultBreakdown);
+                }
+              }
+            },
+          ),
+          alignment: BarChartAlignment.spaceAround,
+          titlesData: FlTitlesData(
+            bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, getTitlesWidget: (v, m) {
+              final style = TextStyle(color: textColor.withOpacity(0.7), fontSize: 12);
+              if (v == 0) return  Text('Tổng', style: style);
+              if (v == 1) return  Text('Đạt', style: style);
+              return  Text('Lỗi', style: style);
+            })),
+          ),
+          barGroups: [
+            BarChartGroupData(x: 0, barRods: [BarChartRodData(toY: stats.total.toDouble(), color: Colors.blue, width: 30,
+              borderRadius: BorderRadius.circular(4),)]),
+            BarChartGroupData(x: 1, barRods: [BarChartRodData(toY: stats.passed.toDouble(), color: Colors.green, width: 30,
+              borderRadius: BorderRadius.circular(4),)]),
+            BarChartGroupData(x: 2, barRods: [
+              BarChartRodData(
+                toY: stats.failed.toDouble(),
+                width: 30,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+                rodStackItems: _generateStackItems(stats.faultBreakdown),
+              ),
+            ]),
           ],
         ),
       ),
     );
   }
-
-  Widget _buildLegend() {
-    final Map<String, Color> legendItems = {
-      "Missing Hole": Colors.orange,
-      "Mouse Bite": Colors.red,
-      "Open Circuit": Colors.blue,
-      "Spur": Colors.purple,
-      "Spurious Copper": Colors.teal,
-      "Short Circuit": Colors.yellow,
-    };
-
-    return Wrap(
-      spacing: 10,
-      runSpacing: 10,
-      children: legendItems.entries.map((entry) {
-        return Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(width: 12, height: 12, color: entry.value),
-            const SizedBox(width: 4),
-            Text(entry.key, style: const TextStyle(color: Colors.white70, fontSize: 12)),
-          ],
-        );
-      }).toList(),
-    );
-  }
-
-  void _showErrorDetailDialog(BuildContext context) {
-    final Map<String, int> errorDetails = {
-      "Missing Hole": 30,
-      "Mouse Bite": 90,
-      "Open Circuit": 27,
-      "Spur": 23,
-      "Spurious Copper": 65,
-      "Short Circuit": 65,
-    };
-
+  void _showFaultDetailsDialog(BuildContext context, List<FaultData> faults) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1E1E1E),
-        title: const Text("Chi tiết các loại lỗi", style: TextStyle(color: Colors.white)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: errorDetails.entries.map((entry) => ListTile(
-            title: Text(entry.key, style: const TextStyle(color: Colors.white70)),
-            trailing: Text("${entry.value}", style: const TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold)),
-          )).toList(),
+        backgroundColor: bgColor,
+        title: Text("Chi tiết các loại lỗi", style: TextStyle(color: textColor)),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: ListView.separated(
+            shrinkWrap: true,
+            itemCount: faults.length,
+            separatorBuilder: (_, __) => Divider(color: textColor),
+            itemBuilder: (context, index) {
+              final fault = faults[index];
+              return ListTile(
+                title: Text(fault.faultClass, style: TextStyle(color: textColor)),
+                trailing: Text("${fault.count}", style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+              );
+            },
+          ),
         ),
-        actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text("Đóng"))],
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Đóng"))
+        ],
       ),
     );
   }
 
-  Widget _buildProfileHeader() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E1E1E),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
+  List<BarChartRodStackItem> _generateStackItems(List<FaultData> faults) {
+    double currentY = 0;
+    return faults.map((f) {
+      double start = currentY;
+      currentY += f.count;
+      return BarChartRodStackItem(start, currentY, _getColorForFault(f.faultClass));
+    }).toList();
+  }
+
+  Color _getColorForFault(String faultClass) {
+    switch (faultClass.toLowerCase()) {
+      case 'spur': return Colors.purple;
+      case 'missing_hole': return Colors.orange;
+      case 'mouse_bite': return Colors.red;
+      case 'open_circuit': return Colors.blue;
+      case 'short_circuit': return Colors.yellow;
+      case 'spurious_copper': return Colors.teal;
+      default: return Colors.grey;
+    }
+  }
+
+  Future<void> _handleLogout() async {
+    final storage = const FlutterSecureStorage();
+    String? refreshToken = await storage.read(key: 'refreshToken');
+
+    try {
+      await DioClient.adminDio.post('/admin/logout', data: {'refreshToken': refreshToken});
+    } catch (e) {
+      debugPrint("Lỗi khi hủy token trên server: $e");
+    }
+
+    await storage.deleteAll();
+
+    Navigator.pushReplacementNamed(context, '/');
+  }
+
+  Widget _buildLegend(List<FaultData> faults) {
+    return Wrap(
+      spacing: 10, runSpacing: 10,
+      children: faults.map((f) => Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          const CircleAvatar(radius: 30, backgroundColor: Colors.blueAccent, child: Icon(Icons.admin_panel_settings, size: 30, color: Colors.white)),
-          const SizedBox(width: 16),
-          Column(
+          Container(width: 12, height: 12, color: _getColorForFault(f.faultClass)),
+          const SizedBox(width: 4),
+          Text(f.faultClass, style: TextStyle(color: textColor, fontSize: 12)),
+        ],
+      )).toList(),
+    );
+  }
+
+  Widget _buildProfileHeader(Map<String, dynamic> admin) => Container(
+    padding: const EdgeInsets.all(20),
+    decoration: BoxDecoration(color: surfaceColor, borderRadius: BorderRadius.circular(16)),
+    child: Row(
+      children: [
+        CircleAvatar(
+            radius: 30,
+            backgroundColor: Colors.blueAccent,
+            child: Icon(Icons.admin_panel_settings, size: 30, color: textColor)
+        ),
+        const SizedBox(width: 16),
+        Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
-              Text("Đặng Võ Nhật Anh", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-              Text("Super Admin - TechZ", style: TextStyle(color: Colors.grey)),
-            ],
-          )
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatsGrid() {
-    return GridView.count(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisCount: 2,
-      crossAxisSpacing: 12,
-      mainAxisSpacing: 12,
-      childAspectRatio: 1.6,
-      children: [
-        _buildStatCard("Thiết bị", "15", Icons.devices_other),
-        _buildStatCard("Lỗi đang chờ", "03", Icons.warning_amber),
-        _buildStatCard("Batch hôm nay", "128", Icons.fact_check),
-        _buildStatCard("Uptime", "99.9%", Icons.speed),
+            children: [
+              Text(
+                  admin['full_name'] ?? "Admin",
+                  style: TextStyle(color: textColor, fontSize: 18, fontWeight: FontWeight.bold)
+              ),
+              Text(
+                  (admin['role'] ?? "admin") == 'super_admin'
+                      ? "Super Admin"
+                      : (admin['role'] as String).toUpperCase(),
+                  style: TextStyle(color: textColor)
+              ),
+            ]
+        )
       ],
-    );
-  }
+    ),
+  );
 
-  Widget _buildStatCard(String title, String value, IconData icon) {
-    return Container(
-      decoration: BoxDecoration(color: const Color(0xFF1E1E1E), borderRadius: BorderRadius.circular(12)),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, color: Colors.blueAccent),
-          const SizedBox(height: 8),
-          Text(value, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-          Text(title, style: const TextStyle(color: Colors.grey, fontSize: 11)),
-        ],
-      ),
-    );
-  }
+  Widget _buildManagementSection(BuildContext context) => Column(
+    children: [
+      _buildMenuItem(Icons.file_copy, "Xuất file báo cáo"),
+      _buildMenuItem(
+        Icons.logout,
+        "Đăng xuất",
+        color: Colors.redAccent,
+        onTap: () => _handleLogout(),
+      )
+    ],
+  );
 
-  Widget _buildManagementSection(BuildContext context) {
-    return Column(
-      children: [
-        _buildMenuItem(Icons.manage_accounts, "Quản lý User"),
-        _buildMenuItem(Icons.dns, "Cấu hình Server"),
-        _buildMenuItem(Icons.summarize, "Xuất báo cáo hệ thống"),
-        _buildMenuItem(Icons.logout, "Đăng xuất", color: Colors.redAccent),
-      ],
-    );
-  }
-
-  Widget _buildMenuItem(IconData icon, String title, {Color color = Colors.white}) {
-    return Card(
-      color: const Color(0xFF1E1E1E),
-      margin: const EdgeInsets.only(bottom: 12),
-      child: ListTile(
-        leading: Icon(icon, color: color),
-        title: Text(title, style: TextStyle(color: color)),
-        trailing: const Icon(Icons.chevron_right, color: Colors.grey),
-      ),
-    );
-  }
+  Widget _buildMenuItem(IconData icon, String title, {Color color = Colors.white, VoidCallback? onTap}) => Card(
+    color: surfaceColor,
+    child: ListTile(
+        onTap: onTap,
+        leading: Icon(icon, color: textColor),
+        title: Text(title, style: TextStyle(color: textColor))
+    ),
+  );
 }

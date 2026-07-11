@@ -1,7 +1,14 @@
 import 'package:dio/dio.dart';
+import 'package:doan_local/screens/login_screen.dart';
+
+import 'package:doan_local/services/dio_instances.dart';
+import 'package:doan_local/theme/theme_manager.dart';
+import 'package:doan_local/wrapper/admin_wrapper.dart';
 import 'package:flutter/material.dart';
-import 'package:doan_local/utils/device_helper.dart';
 import 'package:doan_local/screens/pcb_detector_screen.dart';
+
+
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 //http://n2.ckey.vn:2534
 final Dio dio = Dio(BaseOptions(baseUrl: 'http://192.168.1.214:3000')); //local
@@ -9,23 +16,26 @@ final Dio dio = Dio(BaseOptions(baseUrl: 'http://192.168.1.214:3000')); //local
 //final Dio dio = Dio(BaseOptions(baseUrl: 'http://ckc.cntt.cloud:2534')); //server
 
 void main() {
-  dio.interceptors.add(InterceptorsWrapper(
-    onRequest: (options, handler) async {
-      final String? deviceId = await DeviceHelper.getDeviceId();
+  DioClient.setup();
 
-      if (deviceId == null) {
-        debugPrint("CẢNH BÁO: Device ID bị null!");
-      } else {
-        debugPrint("Interceptor: Đã lấy được ID: $deviceId");
-        options.headers['x-device-id'] = deviceId;
+  // dio.interceptors.add(InterceptorsWrapper(
+  //   onRequest: (options, handler) async {
+  //     final String? deviceId = await DeviceHelper.getDeviceId();
+  //
+  //     if (deviceId == null) {
+  //       debugPrint("CẢNH BÁO: Device ID bị null!");
+  //     } else {
+  //       debugPrint("Interceptor: Đã lấy được ID: $deviceId");
+  //       options.headers['x-device-id'] = deviceId;
+  //
+  //       if (options.data is Map) {
+  //         options.data['device_id'] = deviceId;
+  //       }
+  //     }
+  //     return handler.next(options);
+  //   },
+  // ));
 
-        if (options.data is Map) {
-          options.data['device_id'] = deviceId;
-        }
-      }
-      return handler.next(options);
-    },
-  ));
 
   runApp(const SessionManagerApp());
 }
@@ -49,7 +59,7 @@ class _SessionManagerAppState extends State<SessionManagerApp> with WidgetsBindi
 
   Future<void> _startSession() async {
     try {
-      final response = await dio.post('/api/sessions/start');
+      final response = await DioClient.deviceDio.post('/sessions/start');
 
       setState(() => _currentSessionId = response.data['session_id']);
       debugPrint("✅ Session bắt đầu: $_currentSessionId");
@@ -60,7 +70,7 @@ class _SessionManagerAppState extends State<SessionManagerApp> with WidgetsBindi
 
   Future<void> _endSession() async {
     if (_currentSessionId != null) {
-      await dio.post('/api/sessions/end', data: {'session_id': _currentSessionId});
+      await DioClient.deviceDio.post('sessions/end', data: {'session_id': _currentSessionId});
     }
   }
 
@@ -74,9 +84,27 @@ class _SessionManagerAppState extends State<SessionManagerApp> with WidgetsBindi
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      home: Scaffold(
-        body: PCBDetectorScreen(sessionId: _currentSessionId),
-      ),
+      navigatorKey: navigatorKey,
+      initialRoute: '/',
+      routes: {
+        '/': (context) => const PCBDetectorScreen(),
+        '/login': (context) => AdminLoginScreen(
+          isDarkMode: ThemeService.isDarkModeNotifier.value,
+          onSuccess: () {
+            Navigator.pushReplacementNamed(context, 'Admin');
+          },
+        ),
+        'Admin': (context) => ValueListenableBuilder<bool>(
+          valueListenable: ThemeService.isDarkModeNotifier,
+          builder: (context, isDarkMode, child) {
+            return AdminWrapper(
+                onLoginSuccess: () {
+                  debugPrint("Đăng nhập thành công!");
+                },
+                isDarkMode: isDarkMode);
+          },
+        ),
+      },
     );
   }
 }

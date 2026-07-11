@@ -23,7 +23,7 @@ class HeaderSection extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(Icons.memory, color: Colors.blueAccent, size: 28), // Icon PCB
+              Icon(Icons.memory, color: Colors.blueAccent, size: 28),
               const SizedBox(width: 10),
               Text(
                 title,
@@ -35,7 +35,6 @@ class HeaderSection extends StatelessWidget {
               ),
             ],
           ),
-          // Nút chuyển đổi mode (dark mode , light mode)
           Switch(
             value: isDarkMode,
             onChanged: onThemeChanged,

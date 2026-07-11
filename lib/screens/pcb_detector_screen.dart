@@ -1,19 +1,16 @@
 import 'dart:io';
-import 'package:doan_local/screens/admin_profile_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:image_picker/image_picker.dart';
+import '../components/custom_app_bar.dart';
 import '../theme/theme_manager.dart';
 import '../screens/pcb_history_tab.dart';
 import '../services/api_service.dart';
-import '../components/header_section.dart';
 import '../components/action_bar.dart';
 import '../components/result_section.dart';
 import '../components/display_zone.dart';
 import '../components/custom_bottom_nav_bar.dart';
-import 'package:doan_local/screens/search_screens.dart';
-
-import 'login_screen.dart';
+import '../wrapper/admin_wrapper.dart';
 
 
 const Color primaryBlue = Color(0xFF1E88E5);
@@ -38,6 +35,7 @@ class _PCBDetectorScreenState extends State<PCBDetectorScreen> with AutomaticKee
   String pcbStatus = "Chưa kiểm định";
   bool isPcbPassed = false;
   String selectedTab = "Home";
+  bool _isAdminLoggedIn = false;
 
   CameraController? _cameraController;
   List<CameraDescription>? _cameras;
@@ -53,9 +51,6 @@ class _PCBDetectorScreenState extends State<PCBDetectorScreen> with AutomaticKee
   String pcbInfoText = "Chưa có dữ liệu. Vui lòng sử dụng camera hoặc thêm ảnh từ thư viện.";
   List<String> mockFaults = [];
 
-
-
-
   @override
   bool get wantKeepAlive => true;
 
@@ -64,6 +59,7 @@ class _PCBDetectorScreenState extends State<PCBDetectorScreen> with AutomaticKee
     super.initState();
     _initializeCameraSystem();
   }
+
 
   Future<void> _initializeCameraSystem() async {
     try {
@@ -232,6 +228,13 @@ class _PCBDetectorScreenState extends State<PCBDetectorScreen> with AutomaticKee
     _cameraController?.dispose();
     super.dispose();
   }
+  String _getAppBarTitle() {
+    if (selectedTab == "Admin") {
+      return _isAdminLoggedIn ? "Admin Dashboard" : "Admin Login";
+    }
+    if (selectedTab == "History") return "History";
+    return "PCB Detector";
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -245,6 +248,11 @@ class _PCBDetectorScreenState extends State<PCBDetectorScreen> with AutomaticKee
 
         return Scaffold(
           backgroundColor: currentBackground,
+          appBar: CustomAppBar(
+            title: _getAppBarTitle(),
+            isDarkMode: isDarkMode,
+            onThemeChanged: (value) => ThemeService.isDarkModeNotifier.value = value,
+          ),
           body: SafeArea(child: _buildBodyContent(currentSurface, currentTextColor, isDarkMode)),
           bottomNavigationBar: CustomBottomNavBar(
             selectedTab: selectedTab,
@@ -270,16 +278,18 @@ class _PCBDetectorScreenState extends State<PCBDetectorScreen> with AutomaticKee
           textColor: currentTextColor,
           isDarkMode: isDarkMode,
         );
-      case "Login":
-        return AdminLoginScreen();
+
       case "Admin":
-        return const AdminProfileScreen();
+        return AdminWrapper(
+            isDarkMode: isDarkMode,
+            onLoginSuccess: () => setState(() => _isAdminLoggedIn = true));
       default:
         return Center(
           child: Text("Màn hình $selectedTab đang phát triển", style: TextStyle(color: currentTextColor, fontSize: 16)),
         );
     }
   }
+
 
   Widget _buildHomeTab(Color currentSurface, Color currentTextColor, bool isDarkMode) {
     return SingleChildScrollView(
@@ -288,12 +298,6 @@ class _PCBDetectorScreenState extends State<PCBDetectorScreen> with AutomaticKee
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            HeaderSection(
-              title: "PCB Detector",
-              textColor: currentTextColor,
-              isDarkMode: isDarkMode,
-              onThemeChanged: (value) => ThemeService.isDarkModeNotifier.value = value,
-            ),
             const SizedBox(height: 12),
             DisplayZone(
               showLiveCamera: _showLiveCamera,
