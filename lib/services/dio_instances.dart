@@ -5,9 +5,17 @@ import 'package:flutter/material.dart';
 import 'package:doan_local/utils/device_helper.dart';
 
 class DioClient {
-  static final Dio deviceDio = Dio(BaseOptions(baseUrl: 'http://10.0.2.2:3000/api'));
+  //static final Dio deviceDio = Dio(BaseOptions(baseUrl: 'http://10.0.2.2:3000/api'));
 
-  static final Dio adminDio = Dio(BaseOptions(baseUrl: 'http://10.0.2.2:3000/api'));
+  //static final Dio adminDio = Dio(BaseOptions(baseUrl: 'http://10.0.2.2:3000/api'));
+
+  static final Dio deviceDio = Dio(BaseOptions(baseUrl: 'https://ckc.cntt.cloud:14019/api'));
+
+  static final Dio adminDio = Dio(BaseOptions(baseUrl: 'https://ckc.cntt.cloud:14019/api'));
+
+  // static final Dio deviceDio = Dio(BaseOptions(baseUrl: 'http://ckc.cntt.cloud:14011/api'));
+  //
+  // static final Dio adminDio = Dio(BaseOptions(baseUrl: 'http://ckc.cntt.cloud:14011/api'));
 
   static void setup() {
     debugPrint("--- ĐÃ KHỞI TẠO DIO INTERCEPTORS ---");
@@ -32,8 +40,7 @@ class DioClient {
           try {
             String? refreshToken = await StorageService.getRefreshToken();
 
-            final dioRefresh = Dio(BaseOptions(baseUrl: 'http://10.0.2.2:3000/api'));
-            final response = await dioRefresh.post('/admin/refresh-token', data: {
+            final response = await adminDio.post('/admin/refresh-token', data: {
               'refreshToken': refreshToken
             });
 

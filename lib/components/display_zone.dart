@@ -60,10 +60,17 @@ class DisplayZone extends StatelessWidget {
                 child: CachedNetworkImage(
                   imageUrl: serverImageUrl!,
                   fit: BoxFit.contain,
-                  placeholder: (context, url) => const Center(child: CircularProgressIndicator()),
-                  errorWidget: (context, url, error) => const Center(
-                    child: Icon(Icons.broken_image, color: Colors.grey, size: 48),
+                  placeholder: (context, url) => const Center(
+                    child: CircularProgressIndicator(color: primaryBlue),
                   ),
+                  errorWidget: (context, url, error) {
+                    debugPrint("Lỗi tải ảnh từ server: $error");
+                    return selectedImageFile != null
+                        ? Image.file(selectedImageFile!, fit: BoxFit.contain)
+                        : const Center(
+                      child: Icon(Icons.broken_image, color: Colors.grey, size: 48),
+                    );
+                  },
                 ),
               ),
               Positioned.fill(child: CustomPaint(painter: GridPainter())),
