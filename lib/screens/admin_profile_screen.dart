@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:flutter_file_downloader/flutter_file_downloader.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:doan_local/models/dashboard_model.dart';
 import '../services/dio_instances.dart';
+import 'package:open_file/open_file.dart';
+
 
 class AdminProfileScreen extends StatefulWidget {
   final bool isDarkMode;
@@ -227,15 +230,63 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
 
   Widget _buildManagementSection(BuildContext context) => Column(
     children: [
-      _buildMenuItem(Icons.file_copy, "Xuất file báo cáo"),
+      _buildMenuItem(Icons.file_copy,
+        "Xuất file báo cáo",
+        onTap: () => _handleExportReport(context),
+      ),
       _buildMenuItem(
         Icons.logout,
         "Đăng xuất",
-        color: Colors.redAccent,
         onTap: () => _handleLogout(),
       )
     ],
   );
+
+
+  Future<void> _handleExportReport(BuildContext context) async {
+
+    DateTimeRange? picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(2026),
+      lastDate: DateTime.now(),
+    );
+
+    if (picked == null) return;
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Đang tạo và tải báo cáo...")));
+    String start = picked.start.toIso8601String().split('T')[0];
+    String end = picked.end.toIso8601String().split('T')[0];
+
+    try {
+      final response = await DioClient.adminDio.get(
+        "/admin/export-pdf",
+        queryParameters: {
+        "startDate": start,
+        "endDate": end,
+      },
+      );
+
+      if (response.statusCode == 200) {
+        final String downloadLink = response.data['downloadLink'];
+
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Đang tải báo cáo...")));
+
+        // Dùng thư viện này để tải về thư mục Public/Downloads
+        await FileDownloader.downloadFile(
+          url: downloadLink,
+          name: 'BaoCao_PCB_${DateTime.now().millisecondsSinceEpoch}.pdf',
+          onDownloadCompleted: (String path) {
+            // Khi tải xong, mở file ngay lập tức
+            OpenFile.open(path);
+          },
+          onDownloadError: (String error) {
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Tải lỗi: $error")));
+          },
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Lỗi hệ thống: $e")));
+    }
+  }
 
   Widget _buildMenuItem(IconData icon, String title, {Color color = Colors.white, VoidCallback? onTap}) => Card(
     color: surfaceColor,
