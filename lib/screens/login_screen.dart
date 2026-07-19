@@ -4,8 +4,9 @@ import '../services/storage_service.dart';
 
 
 final Dio _dio = Dio(BaseOptions(
-  baseUrl: "https://ckc.cntt.cloud:14019/api",
-  // baseUrl: "http://ckc.cntt.cloud:14011/api",
+  //baseUrl: "http://10.0.2.2:3000/api",
+  baseUrl: "http://192.168.1.214:3000/api",
+   //baseUrl: "http://ckc.cntt.cloud:14011/api",
   connectTimeout: const Duration(seconds: 5),
 ));
 

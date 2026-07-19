@@ -18,23 +18,6 @@ final Dio dio = Dio(BaseOptions(baseUrl: 'http://192.168.1.214:3000')); //local
 void main() {
   DioClient.setup();
 
-  // dio.interceptors.add(InterceptorsWrapper(
-  //   onRequest: (options, handler) async {
-  //     final String? deviceId = await DeviceHelper.getDeviceId();
-  //
-  //     if (deviceId == null) {
-  //       debugPrint("CẢNH BÁO: Device ID bị null!");
-  //     } else {
-  //       debugPrint("Interceptor: Đã lấy được ID: $deviceId");
-  //       options.headers['x-device-id'] = deviceId;
-  //
-  //       if (options.data is Map) {
-  //         options.data['device_id'] = deviceId;
-  //       }
-  //     }
-  //     return handler.next(options);
-  //   },
-  // ));
 
 
   runApp(const SessionManagerApp());
@@ -70,13 +53,15 @@ class _SessionManagerAppState extends State<SessionManagerApp> with WidgetsBindi
 
   Future<void> _endSession() async {
     if (_currentSessionId != null) {
-      await DioClient.deviceDio.post('sessions/end', data: {'session_id': _currentSessionId});
+      await DioClient.deviceDio.post(
+          'sessions/end', data: {'session_id': _currentSessionId});
     }
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.detached || state == AppLifecycleState.paused) {
+    if (state == AppLifecycleState.detached ||
+        state == AppLifecycleState.paused) {
       _endSession();
     }
   }
@@ -86,24 +71,47 @@ class _SessionManagerAppState extends State<SessionManagerApp> with WidgetsBindi
     return MaterialApp(
       navigatorKey: navigatorKey,
       initialRoute: '/',
-      routes: {
-        '/': (context) => const PCBDetectorScreen(),
-        '/login': (context) => AdminLoginScreen(
-          isDarkMode: ThemeService.isDarkModeNotifier.value,
-          onSuccess: () {
-            Navigator.pushReplacementNamed(context, 'Admin');
-          },
-        ),
-        'Admin': (context) => ValueListenableBuilder<bool>(
-          valueListenable: ThemeService.isDarkModeNotifier,
-          builder: (context, isDarkMode, child) {
-            return AdminWrapper(
-                onLoginSuccess: () {
-                  debugPrint("Đăng nhập thành công!");
-                },
-                isDarkMode: isDarkMode);
-          },
-        ),
+// Sử dụng onGenerateRoute thay thế cho thuộc tính routes tĩnh
+      onGenerateRoute: (settings) {
+        switch (settings.name) {
+          case '/':
+            return MaterialPageRoute(
+              builder: (context) =>
+                  PCBDetectorScreen(
+                    sessionId: _currentSessionId,
+                  ),
+            );
+
+          case '/login':
+            return MaterialPageRoute(
+              builder: (context) =>
+                  AdminLoginScreen(
+                    isDarkMode: ThemeService.isDarkModeNotifier.value,
+                    onSuccess: () {
+                      Navigator.pushReplacementNamed(context, 'Admin');
+                    },
+                  ),
+            );
+
+          case 'Admin':
+            return MaterialPageRoute(
+              builder: (context) =>
+                  ValueListenableBuilder<bool>(
+                    valueListenable: ThemeService.isDarkModeNotifier,
+                    builder: (context, isDarkMode, child) {
+                      return AdminWrapper(
+                        onLoginSuccess: () {
+                          debugPrint("Đăng nhập thành công!");
+                        },
+                        isDarkMode: isDarkMode,
+                      );
+                    },
+                  ),
+            );
+
+          default:
+            return null;
+        }
       },
     );
   }
