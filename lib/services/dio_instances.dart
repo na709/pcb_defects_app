@@ -9,13 +9,13 @@ class DioClient {
 
   //static final Dio adminDio = Dio(BaseOptions(baseUrl: 'http://10.0.2.2:3000/api'));
 
-  //static final Dio deviceDio = Dio(BaseOptions(baseUrl: 'https://ckc.cntt.cloud:14019/api'));
+  static final Dio deviceDio = Dio(BaseOptions(baseUrl: 'https://ckc.cntt.cloud/api'));
 
-  //static final Dio adminDio = Dio(BaseOptions(baseUrl: 'https://ckc.cntt.cloud:14019/api'));
+  static final Dio adminDio = Dio(BaseOptions(baseUrl: 'https://ckc.cntt.cloud/api'));
 
-  static final Dio deviceDio = Dio(BaseOptions(baseUrl: 'http://192.168.1.214:3000/api'));
-
-  static final Dio adminDio = Dio(BaseOptions(baseUrl: 'http://192.168.1.214:3000/api'));
+  // static final Dio deviceDio = Dio(BaseOptions(baseUrl: 'http://192.168.1.214:3000/api'));
+  //
+  // static final Dio adminDio = Dio(BaseOptions(baseUrl: 'http://192.168.1.214:3000/api'));
 
   static void setup() {
     debugPrint("--- ĐÃ KHỞI TẠO DIO INTERCEPTORS ---");

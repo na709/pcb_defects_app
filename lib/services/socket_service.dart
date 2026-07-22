@@ -6,7 +6,9 @@ import '../utils/device_helper.dart';
 
 class SocketService {
   IO.Socket? _socket;
-  final String _serverUrl = "http://192.168.1.214:3000";
+  //final String _serverUrl = "http://192.168.1.214:3000"; // local
+  final String _serverUrl = "https://ckc.cntt.cloud";
+
 
 
   Future<void> connect({

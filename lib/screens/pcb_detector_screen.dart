@@ -87,7 +87,7 @@ class _PCBDetectorScreenState extends State<PCBDetectorScreen> with AutomaticKee
     setState(() => _isAutoRunning = true);
     debugPrint("[FLUTTER SOCKET] Chuẩn bị stream với Session ID: ${widget.sessionId}");
 
-    // Chạy vòng lặp vô hạn an toàn theo trạng thái của cờ _isAutoRunning
+    // cờ _isAutoRunning quản lý vòng lặp
     while (_isAutoRunning) {
       if (_cameraController == null || !_cameraController!.value.isInitialized) break;
 
@@ -121,7 +121,7 @@ class _PCBDetectorScreenState extends State<PCBDetectorScreen> with AutomaticKee
         _isProcessingFrame = false;
       }
 
-      // khoảng nghỉ khi gọi socket
+      // khoảng nghỉ khi gọi socket hiện tại là 5 giây
       await Future.delayed(const Duration(seconds: 5));
     }
   }

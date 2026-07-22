@@ -11,7 +11,7 @@
     </queries>
     <application
         android:usesCleartextTraffic="true"
-        android:label="doan_local"
+        android:label="PCB Scan"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

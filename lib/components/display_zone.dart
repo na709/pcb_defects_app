@@ -14,7 +14,6 @@ class DisplayZone extends StatelessWidget {
   final VoidCallback onToggleFlash;
   final bool isFlashOn;
 
-  // THÊM MỚI: Nhận danh sách tọa độ khuyết tật thô dạng [{ "bbox": [xmin, ymin, xmax, ymax], "class": "Lỗi..." }]
   final List<dynamic>? rawFaultsData;
 
   const DisplayZone({
@@ -33,7 +32,7 @@ class DisplayZone extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AspectRatio(
-      aspectRatio: 4 / 3,
+      aspectRatio: 3 / 4,
       child: Container(
         decoration: BoxDecoration(
           color: Colors.black45,
@@ -41,7 +40,7 @@ class DisplayZone extends StatelessWidget {
           border: Border.all(color: Colors.grey.withOpacity(0.2), width: 1.5),
         ),
         clipBehavior: Clip.antiAlias,
-        child: LayoutBuilder( // Sử dụng LayoutBuilder để lấy chính xác kích thước vùng hiển thị thực tế
+        child: LayoutBuilder(
           builder: (context, constraints) {
             final double zoneWidth = constraints.maxWidth;
             final double zoneHeight = constraints.maxHeight;
@@ -57,7 +56,7 @@ class DisplayZone extends StatelessWidget {
                   // Lưới Grid căn chỉnh bo mạch
                   Positioned.fill(child: CustomPaint(painter: GridPainter())),
 
-                  // THÊM MỚI: Vẽ đè Bounding Box Realtime từ Socket lên luồng Live Preview
+                  // Vẽ các Bounding Box Realtime từ Socket lên luồng Live
                   if (isCameraInitialized && rawFaultsData != null)
                     ..._buildBoundingBoxes(rawFaultsData!, zoneWidth, zoneHeight),
 
@@ -116,8 +115,9 @@ class DisplayZone extends StatelessWidget {
     // 1. LẤY ĐỘ PHÂN GIẢI THỰC TẾ CỦA FILE ẢNH/PREVIEW CAMERA XUẤT RA
     // Lưu ý: Hệ điều hành Android/iOS thường đảo ngược chiều rộng và chiều cao của preview size khi cầm máy đứng
     final Size previewSize = cameraController!.value.previewSize!;
-    final double previewWidth = previewSize.height; // Chiều rộng thực tế của ảnh chụp ra
-    final double previewHeight = previewSize.width; // Chiều cao thực tế của ảnh chụp ra
+    final double previewWidth = previewSize.height;  // Chiều rộng ảnh
+
+    final double previewHeight = previewSize.width; // Chiều cao ảnh
 
     return faults.map((fault) {
       final List<dynamic> bbox = fault['bbox'] ?? [0, 0, 0, 0];

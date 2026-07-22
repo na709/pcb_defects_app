@@ -7,8 +7,8 @@ import 'package:doan_local/utils/device_helper.dart';
 class ApiService {
   //static const String _baseUrl = "http://10.0.2.2:3000"; // local
   //static const String _baseUrl = "http://n2.ckey.vn:2534"; //server test
-  //static const String _baseUrl = "https://ckc.cntt.cloud:14019"; //server test
-   static const String _baseUrl = "http://192.168.1.214:3000"; //tbi thật
+  static const String _baseUrl = "https://ckc.cntt.cloud"; //server test
+  // static const String _baseUrl = "http://192.168.1.214:3000"; //tbi thật
   //static const String _baseUrl = "https://ckc.dvna.site"; //server test
 
 

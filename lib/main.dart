@@ -11,7 +11,7 @@ import 'package:doan_local/screens/pcb_detector_screen.dart';
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 //http://n2.ckey.vn:2534
-final Dio dio = Dio(BaseOptions(baseUrl: 'http://192.168.1.214:3000')); //local
+//final Dio dio = Dio(BaseOptions(baseUrl: 'http://192.168.1.214:3000')); //local
 //final Dio dio = Dio(BaseOptions(baseUrl: 'http://n2.ckey.vn:2534')); //server
 //final Dio dio = Dio(BaseOptions(baseUrl: 'http://ckc.cntt.cloud:2534')); //server
 
